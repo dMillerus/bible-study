@@ -29,9 +29,271 @@ BIBLE_BOOKS = [
 BOOK_TO_ID = {book: idx + 1 for idx, book in enumerate(BIBLE_BOOKS)}
 
 
+# Genre definitions with optimal chunk parameters
+GENRE_CHUNKING_PARAMS = {
+    "poetry": {
+        "target_tokens": 225,
+        "description": "Poetic books with parallelism and imagery",
+        "rationale": "Preserves stanza boundaries and poetic structure",
+    },
+    "wisdom": {
+        "target_tokens": 250,
+        "description": "Wisdom literature and proverbs",
+        "rationale": "Short proverbial sayings, self-contained units",
+    },
+    "law": {
+        "target_tokens": 325,
+        "description": "Legal and ceremonial instructions",
+        "rationale": "Structured legal code sections",
+    },
+    "narrative": {
+        "target_tokens": 350,
+        "description": "Story-driven historical books",
+        "rationale": "Sequential events, current default baseline",
+    },
+    "gospel": {
+        "target_tokens": 350,
+        "description": "Gospel accounts of Jesus' life",
+        "rationale": "Narrative with teaching, similar to historical narrative",
+    },
+    "prophecy": {
+        "target_tokens": 375,
+        "description": "Prophetic and apocalyptic literature",
+        "rationale": "Dense symbolic imagery and oracles",
+    },
+    "epistle": {
+        "target_tokens": 425,
+        "description": "Letters with doctrinal teaching",
+        "rationale": "Complex theological arguments span multiple verses",
+    },
+}
+
+# Book-to-genre mapping (all 66 books)
+BOOK_GENRES = {
+    # Old Testament - Torah/Law (5 books)
+    "Genesis": "narrative",
+    "Exodus": "narrative",
+    "Leviticus": "law",
+    "Numbers": "law",
+    "Deuteronomy": "law",
+
+    # Old Testament - Historical (12 books)
+    "Joshua": "narrative",
+    "Judges": "narrative",
+    "Ruth": "narrative",
+    "I Samuel": "narrative",
+    "II Samuel": "narrative",
+    "I Kings": "narrative",
+    "II Kings": "narrative",
+    "I Chronicles": "narrative",
+    "II Chronicles": "narrative",
+    "Ezra": "narrative",
+    "Nehemiah": "narrative",
+    "Esther": "narrative",
+
+    # Old Testament - Poetry (5 books)
+    "Job": "poetry",
+    "Psalms": "poetry",
+    "Proverbs": "wisdom",
+    "Ecclesiastes": "wisdom",
+    "Song of Solomon": "poetry",
+
+    # Old Testament - Major Prophets (5 books)
+    "Isaiah": "prophecy",
+    "Jeremiah": "prophecy",
+    "Lamentations": "poetry",
+    "Ezekiel": "prophecy",
+    "Daniel": "prophecy",
+
+    # Old Testament - Minor Prophets (12 books)
+    "Hosea": "prophecy",
+    "Joel": "prophecy",
+    "Amos": "prophecy",
+    "Obadiah": "prophecy",
+    "Jonah": "narrative",
+    "Micah": "prophecy",
+    "Nahum": "prophecy",
+    "Habakkuk": "prophecy",
+    "Zephaniah": "prophecy",
+    "Haggai": "prophecy",
+    "Zechariah": "prophecy",
+    "Malachi": "prophecy",
+
+    # New Testament - Gospels (4 books)
+    "Matthew": "gospel",
+    "Mark": "gospel",
+    "Luke": "gospel",
+    "John": "gospel",
+
+    # New Testament - History (1 book)
+    "Acts": "narrative",
+
+    # New Testament - Pauline Epistles (13 books)
+    "Romans": "epistle",
+    "I Corinthians": "epistle",
+    "II Corinthians": "epistle",
+    "Galatians": "epistle",
+    "Ephesians": "epistle",
+    "Philippians": "epistle",
+    "Colossians": "epistle",
+    "I Thessalonians": "epistle",
+    "II Thessalonians": "epistle",
+    "I Timothy": "epistle",
+    "II Timothy": "epistle",
+    "Titus": "epistle",
+    "Philemon": "epistle",
+
+    # New Testament - General Epistles (8 books)
+    "Hebrews": "epistle",
+    "James": "epistle",
+    "I Peter": "epistle",
+    "II Peter": "epistle",
+    "I John": "epistle",
+    "II John": "epistle",
+    "III John": "epistle",
+    "Jude": "epistle",
+
+    # New Testament - Apocalyptic (1 book)
+    "Revelation of John": "prophecy",
+}
+
+
 def get_testament(book_id: int) -> str:
     """Get testament (OT/NT) from book ID."""
     return "OT" if book_id <= 39 else "NT"
+
+
+def get_book_genre(book_name: str) -> str:
+    """Get literary genre for a book."""
+    return BOOK_GENRES.get(book_name, "narrative")
+
+
+def get_genre_params(genre: str) -> dict:
+    """Get chunking parameters for a genre."""
+    return GENRE_CHUNKING_PARAMS.get(genre, GENRE_CHUNKING_PARAMS["narrative"])
+
+
+# Major parallel passages (synoptic gospels and duplicate accounts)
+PARALLEL_PASSAGES = {
+    "feeding_5000": [
+        ("Matthew", 14, 13, 21),
+        ("Mark", 6, 30, 44),
+        ("Luke", 9, 10, 17),
+        ("John", 6, 1, 15),
+    ],
+    "walking_on_water": [
+        ("Matthew", 14, 22, 33),
+        ("Mark", 6, 45, 52),
+        ("John", 6, 16, 21),
+    ],
+    "transfiguration": [
+        ("Matthew", 17, 1, 13),
+        ("Mark", 9, 2, 13),
+        ("Luke", 9, 28, 36),
+    ],
+    "triumphal_entry": [
+        ("Matthew", 21, 1, 11),
+        ("Mark", 11, 1, 11),
+        ("Luke", 19, 28, 44),
+        ("John", 12, 12, 19),
+    ],
+    "cleansing_temple": [
+        ("Matthew", 21, 12, 17),
+        ("Mark", 11, 15, 19),
+        ("Luke", 19, 45, 48),
+        ("John", 2, 13, 22),
+    ],
+    "last_supper": [
+        ("Matthew", 26, 17, 30),
+        ("Mark", 14, 12, 26),
+        ("Luke", 22, 7, 38),
+        ("John", 13, 1, 38),
+    ],
+    "crucifixion": [
+        ("Matthew", 27, 32, 56),
+        ("Mark", 15, 21, 41),
+        ("Luke", 23, 26, 49),
+        ("John", 19, 16, 37),
+    ],
+    "resurrection": [
+        ("Matthew", 28, 1, 10),
+        ("Mark", 16, 1, 8),
+        ("Luke", 24, 1, 12),
+        ("John", 20, 1, 10),
+    ],
+    "great_commission": [
+        ("Matthew", 28, 18, 20),
+        ("Mark", 16, 15, 18),
+        ("Luke", 24, 44, 49),
+        ("Acts", 1, 4, 8),
+    ],
+    "beatitudes": [
+        ("Matthew", 5, 3, 12),
+        ("Luke", 6, 20, 23),
+    ],
+    "lords_prayer": [
+        ("Matthew", 6, 9, 13),
+        ("Luke", 11, 2, 4),
+    ],
+    "parable_sower": [
+        ("Matthew", 13, 1, 23),
+        ("Mark", 4, 1, 20),
+        ("Luke", 8, 4, 15),
+    ],
+    "parable_mustard_seed": [
+        ("Matthew", 13, 31, 32),
+        ("Mark", 4, 30, 32),
+        ("Luke", 13, 18, 19),
+    ],
+    "parable_lost_sheep": [
+        ("Matthew", 18, 10, 14),
+        ("Luke", 15, 3, 7),
+    ],
+    "olivet_discourse": [
+        ("Matthew", 24, 1, 51),
+        ("Mark", 13, 1, 37),
+        ("Luke", 21, 5, 36),
+    ],
+}
+
+
+def identify_parallel_passages(
+    book_name: str,
+    chapter: int,
+    verse_start: int,
+    verse_end: int,
+) -> Optional[Dict[str, Any]]:
+    """
+    Check if chunk is part of a parallel passage.
+
+    Args:
+        book_name: Book name
+        chapter: Chapter number
+        verse_start: Starting verse
+        verse_end: Ending verse
+
+    Returns:
+        Dict with event name and parallel references, or None
+    """
+    for event, passages in PARALLEL_PASSAGES.items():
+        for psg_book, psg_ch, psg_v_start, psg_v_end in passages:
+            # Check if this chunk overlaps with the passage
+            if book_name == psg_book and chapter == psg_ch:
+                # Simple overlap check
+                if not (verse_end < psg_v_start or verse_start > psg_v_end):
+                    # Build parallel references
+                    parallels = []
+                    for pb, pc, pvs, pve in passages:
+                        if pb != book_name or pc != chapter:
+                            parallels.append(f"{pb} {pc}:{pvs}-{pve}")
+
+                    return {
+                        "event": event,
+                        "description": event.replace("_", " ").title(),
+                        "parallel_passages": parallels,
+                    }
+
+    return None
 
 
 @dataclass
@@ -41,6 +303,12 @@ class BibleBook:
     book_id: int
     name: str
     testament: str
+    genre: str = "narrative"
+
+    @property
+    def genre_params(self) -> dict:
+        """Get chunking parameters for this book's genre."""
+        return get_genre_params(self.genre)
 
     @property
     def normalized_name(self) -> str:

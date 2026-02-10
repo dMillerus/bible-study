@@ -32,6 +32,32 @@ class BibleImporterSettings(BaseSettings):
         description="Maximum number of tokens per chunk (hard limit)",
     )
 
+    # Feature flags
+    enable_genre_chunking: bool = Field(
+        default=False,
+        description="Use genre-specific chunk sizes instead of global target",
+    )
+    enable_overlap: bool = Field(
+        default=False,
+        description="Add token overlap between consecutive chunks",
+    )
+    overlap_tokens: int = Field(
+        default=50,
+        description="Number of tokens to overlap between chunks (if enabled)",
+    )
+
+    # Cross-reference detection
+    enable_cross_references: bool = Field(
+        default=False,
+        description="Detect and annotate cross-references in text",
+    )
+
+    # Parallel passages
+    enable_parallel_passages: bool = Field(
+        default=False,
+        description="Identify and link parallel Gospel passages",
+    )
+
     # Import configuration
     batch_size: int = Field(
         default=100,

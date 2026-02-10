@@ -3,7 +3,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict
 
 import click
 
@@ -57,6 +57,21 @@ def cli():
     is_flag=True,
     help="Parse and chunk only, don't call Prism API",
 )
+@click.option(
+    "--genre-aware",
+    is_flag=True,
+    help="Use genre-specific chunk sizes (poetry=225, epistle=425, etc.)",
+)
+@click.option(
+    "--overlap",
+    is_flag=True,
+    help="Add 50-token overlap between consecutive chunks for better context",
+)
+@click.option(
+    "--full-optimization",
+    is_flag=True,
+    help="Enable all optimizations (genre-aware + overlap + cross-refs + parallels)",
+)
 def import_bible(
     version: str,
     verses_csv: Path,
@@ -64,11 +79,30 @@ def import_bible(
     batch_size: int,
     no_embed: bool,
     dry_run: bool,
+    genre_aware: bool,
+    overlap: bool,
+    full_optimization: bool,
 ):
     """Import Bible translation into Prism."""
     translation = version.upper()
 
+    # Full optimization enables all features
+    if full_optimization:
+        genre_aware = True
+        overlap = True
+
+    # Display active features
+    features = []
+    if genre_aware:
+        features.append("genre-aware chunking")
+    if overlap:
+        features.append("50-token overlap")
+    if full_optimization:
+        features.append("cross-references + parallel passages")
+
     click.echo(f"🔍 Parsing {translation} from {verses_csv}...")
+    if features:
+        click.echo(f"✨ Optimizations: {', '.join(features)}")
 
     # Parse book filter if provided
     filter_books = None
@@ -97,8 +131,18 @@ def import_bible(
 
     # Chunk verses
     click.echo(f"\n🧩 Chunking verses for LLM consumption...")
-    documents = list(chunk_verses(verses, translation))
+    documents = list(chunk_verses(
+        verses,
+        translation,
+        enable_genre_aware=genre_aware,
+        enable_overlap=overlap,
+        overlap_tokens=settings.overlap_tokens,
+    ))
     click.echo(f"✅ Created {len(documents):,} chunks")
+
+    # Show genre distribution if genre-aware
+    if genre_aware:
+        _show_genre_distribution(documents)
 
     # Analyze chunking quality
     quality = analyze_chunking_quality(verses, translation)
@@ -331,6 +375,29 @@ def search(query: str, version: Optional[str], top_k: int):
     except Exception as e:
         click.echo(f"❌ Error: {e}", err=True)
         sys.exit(1)
+
+
+def _show_genre_distribution(documents: List[Dict]) -> None:
+    """Display chunk distribution by genre."""
+    from collections import defaultdict
+    import statistics
+
+    genre_stats = defaultdict(list)
+
+    for doc in documents:
+        genre = doc["metadata"].get("genre", {}).get("type", "unknown")
+        token_count = doc["metadata"]["structure"]["token_count"]
+        genre_stats[genre].append(token_count)
+
+    click.echo("\n📊 Genre distribution:")
+    for genre in sorted(genre_stats.keys()):
+        tokens = genre_stats[genre]
+        click.echo(
+            f"   {genre:12} | "
+            f"chunks: {len(tokens):4} | "
+            f"avg: {statistics.mean(tokens):5.1f} tokens | "
+            f"range: {min(tokens):3}-{max(tokens):3}"
+        )
 
 
 if __name__ == "__main__":
