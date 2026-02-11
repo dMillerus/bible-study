@@ -70,7 +70,7 @@
 							<span class="text-gray-600">(768-dimensional vectors)</span>
 						</li>
 						<li>
-							<strong>Response Time:</strong> 3-5s first generation, <100ms cached
+							<strong>Response Time:</strong> 3-5s first generation, &lt;100ms cached
 						</li>
 					</ul>
 				</div>
