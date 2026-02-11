@@ -247,7 +247,7 @@
 			</div>
 		{:else}
 			<GeographyMap
-				{places: filteredPlaces}
+				places={filteredPlaces}
 				{selectedPlace}
 				onPlaceSelect={handlePlaceSelect}
 			/>
