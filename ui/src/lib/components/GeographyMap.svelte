@@ -157,7 +157,7 @@
 			</div>
 			<div class="flex items-center gap-2">
 				<div class="w-3 h-3 rounded-full bg-red-500 border-2 border-white"></div>
-				<span class="text-gray-700">Low (<80)</span>
+				<span class="text-gray-700">Low (&lt;80)</span>
 			</div>
 		</div>
 		<div class="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
