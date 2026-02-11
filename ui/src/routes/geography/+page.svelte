@@ -178,7 +178,7 @@
 						<option value="all">All Levels</option>
 						<option value="high">High (≥300)</option>
 						<option value="moderate">Moderate (80-300)</option>
-						<option value="low">Low (<80)</option>
+						<option value="low">Low (&lt;80)</option>
 					</select>
 				</div>
 			</div>
