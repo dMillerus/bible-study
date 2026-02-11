@@ -1,12 +1,12 @@
 services:
-  bible-study:
+  prism-rs:
     build:
       context: ./bible-study/ui
       dockerfile: docker/Dockerfile
       args:
         - VITE_PRISM_API_URL=http://localhost:8100
         - VITE_OLLAMA_API_URL=http://localhost:11434
-    container_name: bible-study
+    container_name: prism-rs
     restart: unless-stopped
     ports:
       - "127.0.0.1:3003:3000"

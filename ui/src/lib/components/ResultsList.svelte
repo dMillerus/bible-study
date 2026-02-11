@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { searchResults, searchQuery } from '$lib/stores/search';
 	import { selectedVerse, selectVerse, hasSelection } from '$lib/stores/selection';
-	import { BookOpen, Star } from 'lucide-svelte';
+	import { BookOpen, Star, MapPin, Languages } from 'lucide-svelte';
 	import type { BibleSearchResult } from '$lib/types/bible';
+	import { getTestament, OT_BOOKS, NT_BOOKS } from '$lib/api/sword';
+	import { goto } from '$app/navigation';
 
 	function handleSelect(result: BibleSearchResult) {
 		selectVerse(result);
@@ -22,6 +24,48 @@
 	function truncateText(text: string, maxLength: number = 80): string {
 		if (text.length <= maxLength) return text;
 		return text.slice(0, maxLength) + '...';
+	}
+
+	// Check if verse has geography data (places mentioned)
+	function hasGeographyData(result: BibleSearchResult): boolean {
+		// Common biblical place keywords (simplified detection)
+		const placeKeywords = [
+			'Jerusalem', 'Bethlehem', 'Nazareth', 'Galilee', 'Jordan', 'Egypt',
+			'Babylon', 'Damascus', 'Samaria', 'Judea', 'Israel', 'Canaan',
+			'mountain', 'river', 'city', 'temple', 'sea', 'desert', 'wilderness'
+		];
+
+		const text = result.text.toLowerCase();
+		return placeKeywords.some(keyword => text.includes(keyword.toLowerCase()));
+	}
+
+	// Check if verse has original language text available
+	function hasOriginalLanguage(result: BibleSearchResult): boolean {
+		const testament = getTestament(result.book);
+		return testament !== null; // Both OT (Hebrew) and NT (Greek) available
+	}
+
+	// Get original language label
+	function getOriginalLanguageLabel(result: BibleSearchResult): string {
+		const testament = getTestament(result.book);
+		return testament === 'OT' ? 'Hebrew' : 'Greek';
+	}
+
+	// Navigate to geography page with search
+	function viewOnMap(result: BibleSearchResult, event: Event) {
+		event.stopPropagation();
+		goto(`/geography?search=${encodeURIComponent(result.verse_ref)}`);
+	}
+
+	// Navigate to languages page with verse
+	function viewInOriginal(result: BibleSearchResult, event: Event) {
+		event.stopPropagation();
+		const params = new URLSearchParams({
+			book: result.book,
+			chapter: result.chapter.toString(),
+			verse: result.verse.toString()
+		});
+		goto(`/languages?${params.toString()}`);
 	}
 </script>
 
@@ -70,9 +114,30 @@
 					>
 						<!-- Reference and score -->
 						<div class="flex items-start justify-between gap-2 mb-1">
-							<span class="text-sm font-semibold text-gray-900">
-								{result.verse_ref}
-							</span>
+							<div class="flex items-center gap-2">
+								<span class="text-sm font-semibold text-gray-900">
+									{result.verse_ref}
+								</span>
+								<!-- Feature indicators -->
+								<div class="flex items-center gap-1">
+									{#if hasGeographyData(result)}
+										<span
+											class="text-olive-600 hover:text-olive-800"
+											title="Place mentioned - view on map"
+										>
+											<MapPin class="h-3 w-3" />
+										</span>
+									{/if}
+									{#if hasOriginalLanguage(result)}
+										<span
+											class="text-primary-600 hover:text-primary-800"
+											title="{getOriginalLanguageLabel(result)} text available"
+										>
+											<Languages class="h-3 w-3" />
+										</span>
+									{/if}
+								</div>
+							</div>
 							<span class="flex items-center gap-1 text-xs {getScoreColor(result.similarity)}">
 								<Star class="h-3 w-3 fill-current" />
 								{formatScore(result.similarity)}
@@ -85,21 +150,57 @@
 						</div>
 
 						<!-- Preview text -->
-						<p class="text-sm text-gray-700 leading-relaxed">
+						<p class="text-sm text-gray-700 leading-relaxed mb-2">
 							{truncateText(result.text)}
 						</p>
+
+						<!-- Action buttons (shown on hover or selection) -->
+						{#if $selectedVerse?.chunk_id === result.chunk_id}
+							<div class="flex gap-2 mt-2 pt-2 border-t border-primary-200">
+								{#if hasGeographyData(result)}
+									<button
+										on:click={(e) => viewOnMap(result, e)}
+										class="flex items-center gap-1 px-2 py-1 bg-olive-100 hover:bg-olive-200 text-olive-800 rounded text-xs transition-colors"
+										title="View places on map"
+									>
+										<MapPin class="h-3 w-3" />
+										View on Map
+									</button>
+								{/if}
+								{#if hasOriginalLanguage(result)}
+									<button
+										on:click={(e) => viewInOriginal(result, e)}
+										class="flex items-center gap-1 px-2 py-1 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded text-xs transition-colors"
+										title="View {getOriginalLanguageLabel(result)} text"
+									>
+										<Languages class="h-3 w-3" />
+										View in {getOriginalLanguageLabel(result)}
+									</button>
+								{/if}
+							</div>
+						{/if}
 					</button>
 				{/each}
 			</div>
 		{/if}
 	</div>
 
-	<!-- Footer hint -->
+	<!-- Footer hint with feature legend -->
 	{#if $searchResults.length > 0}
-		<div class="px-4 py-2 bg-gray-100 border-t border-gray-200">
-			<p class="text-xs text-gray-500 text-center">
+		<div class="px-4 py-3 bg-sand-50 border-t border-sand-200">
+			<p class="text-xs text-gray-600 text-center mb-2">
 				Click a verse to view translations and AI insights
 			</p>
+			<div class="flex items-center justify-center gap-4 text-xs text-gray-500">
+				<div class="flex items-center gap-1">
+					<MapPin class="h-3 w-3 text-olive-600" />
+					<span>Geography</span>
+				</div>
+				<div class="flex items-center gap-1">
+					<Languages class="h-3 w-3 text-primary-600" />
+					<span>Original Text</span>
+				</div>
+			</div>
 		</div>
 	{/if}
 </div>

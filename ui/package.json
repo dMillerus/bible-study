@@ -1,5 +1,5 @@
 {
-  "name": "bible-study-ui",
+  "name": "prism-religious-studies-ui",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,6 +15,7 @@
     "@sveltejs/adapter-node": "^5.0.0",
     "@sveltejs/kit": "^2.5.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@types/leaflet": "^1.9.8",
     "@types/node": "^20.11.0",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.33",
@@ -25,6 +26,8 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "lucide-svelte": "^0.447.0"
   }
 }

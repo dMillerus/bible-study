@@ -1,4 +1,4 @@
-# Bible Study UI - SvelteKit application
+# Prism Religious Studies UI - SvelteKit application
 
 FROM node:20-alpine AS builder
 

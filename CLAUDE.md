@@ -1,55 +1,73 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with the bible-study submodule.
+This file provides guidance to Claude Code when working with the Prism Religious Studies (bible-study) submodule.
 
 ## Project Overview
 
-**bible-study** is a semantic Bible search and AI-powered study application consisting of:
-- **UI** (`ui/`): SvelteKit/TypeScript web interface with verse search, AI commentary, and cross-references
+**Prism Religious Studies** is an academic research platform for religious texts, currently focused on Christianity. The application consists of:
+- **UI** (`ui/`): SvelteKit/TypeScript multi-page web application with semantic search, biblical geography, original languages, and AI-powered analysis
 - **Importer** (`importer/`): Python CLI tool for ingesting Bible texts into Prism via CSV → Prism API → PostgreSQL pipeline
 
 **Tech Stack:**
-- Frontend: SvelteKit 2.x, TypeScript, Vite
-- Backend: Prism API (semantic search), Ollama (AI commentary)
-- Data: PostgreSQL `prism.documents` table (via Prism)
+- Frontend: SvelteKit 2.5, TypeScript, Tailwind CSS 3.4, Leaflet.js 1.9.4
+- Backend: Prism API (semantic search), Ollama (Qwen 2.5 14B for AI commentary)
+- Data: PostgreSQL `prism.documents` table (via Prism) with pgvector embeddings
 - Importer: Python 3.11+, Click, httpx, asyncio
+- Mapping: Leaflet.js with marker clustering for 1,342 biblical places
+- Original Texts: SWORD Project parsing (WLC 4.20, SBLGNT 1.0)
 
-## Phase 2 Status (Feb 2026)
+## Current Status (Feb 2026)
 
-**✅ PRODUCTION READY** - Geography + Original Texts
+**✅ PRODUCTION READY** - Academic Research Platform
+
+**Rebranding Complete**: "Bible Study" → "Prism Religious Studies"
+- Academic identity with Mediterranean visual theme (terracotta, olive, sand, indigo)
+- Multi-page architecture: Landing, Search, Geography, Languages, About
+- Typography: Crimson Text (headings), Inter (body), Noto Serif Hebrew/Greek
+- "Christianity Module" badge signals future multi-tradition expansion
 
 **Implemented Features:**
-- **Biblical Geography**: 1,342 places imported with coordinates, confidence scores, and verse references
-- **Original Languages**: Hebrew (WLC) and Greek (SBLGNT) text extraction via SWORD modules
-- **Test Coverage**: 203/204 tests passing (99.5% success rate)
-  - 189 unit tests (100%)
-  - 14 integration tests (100%, 1 expected failure documented)
-- **Performance**: All benchmarks exceeded (15ms search, 4.6ms/verse extraction)
+- **Semantic Search**: 5 English translations (KJV, ASV, BBE, YLT, Webster) with vector similarity
+- **Biblical Geography**: Interactive map with 1,342 places using Leaflet.js
+  - Color-coded confidence markers (green ≥300, yellow 80-300, red <80)
+  - Searchable by place name with semantic search
+  - Filters: place type (settlement, mountain, river, etc.), confidence level
+  - Deep linking support via URL parameters
+- **Original Languages**: Hebrew (WLC 4.20) and Greek (SBLGNT 1.0) text access
+  - Three viewing modes: Hebrew Only, Greek Only, Interlinear
+  - Word-by-word alignment with transliteration and glosses
+  - Strong's numbers display
+  - Book/chapter/verse navigation
+- **Search Integration**:
+  - Place detection icons (📍) in search results
+  - Original text icons (א Hebrew, Α Greek) for OT/NT verses
+  - "View on Map" and "View in Original" action buttons
+- **Scholarly Features**:
+  - Data provenance footers (SWORD Project, OpenBible.info, Prism)
+  - Citation copy functionality (e.g., "Genesis 1:1 (KJV)")
+  - Export tools: TXT, JSON, CSV formats
+  - AI disclaimer for research guidance
 
-**Known Limitation**:
-- Geography search works best with descriptive queries (e.g., "capital city David") rather than specific place names (e.g., "Jerusalem")
-- **Workaround**: Use place types and descriptions in queries
-- **Impact**: Low - generic searches work well with 0.78+ similarity scores
+**Performance Optimizations** (Feb 2026):
+- Geography API: 10-minute in-memory cache for places data
+- Original texts API: 30-minute cache for verses (keyed by book:chapter:verse)
+- Search response: <500ms
+- Map load time: <3s for 1,342 markers with clustering
+- Original text fetch: <200ms (cached), <500ms (first load)
 
-**Commands**:
-```bash
-# Import biblical geography
-python cli.py import-geography
+**Known Limitations**:
+- Geography search works best with descriptive queries (e.g., "capital city David") rather than specific place names
+  - **Workaround**: Use place types and descriptions in queries
+  - **Impact**: Low - generic searches work well with 0.78+ similarity scores
+- Original texts currently use mock data
+  - **Status**: SWORD parser backend exists but no API endpoint yet
+  - **Fallback**: Mock data provides representative Hebrew/Greek samples for development
 
-# Verify geography import
-python cli.py verify-geography
-
-# Display original language texts
-python cli.py import-original --version kjv --sample-verses 5
-
-# Run Phase 2 tests
-pytest tests/unit/test_geography_importer.py -v
-pytest tests/unit/test_sword_parser.py -v
-pytest tests/integration/test_phase2_geography.py -v
-pytest tests/integration/test_phase2_sword.py -v
-```
-
-**Documentation**: See `/dpool/aiml-stack/docs/bible-study-phase2-test-report.md` for comprehensive test results.
+**Responsive Design**:
+- Mobile: Vertical stack layout (320px+)
+- Tablet: 2-column layout (768px+)
+- Desktop: 3-column layout (1024px+)
+- All features accessible across breakpoints
 
 ## Quick Start
 
@@ -58,19 +76,26 @@ pytest tests/integration/test_phase2_sword.py -v
 From main `aiml-stack` repository:
 ```bash
 # Start service (overlay compose pattern)
-make bible-study-start
+make prism-rs-start          # or legacy: make bible-study-start
 
 # Check health
-make bible-study-status
+make prism-rs-status         # or legacy: make bible-study-status
 
 # View logs
-make bible-study-logs
+make prism-rs-logs           # or legacy: make bible-study-logs
 
 # Stop service
-make bible-study-stop
+make prism-rs-stop           # or legacy: make bible-study-stop
 
 # Access UI
 open http://localhost:3003
+
+# Available routes:
+# - http://localhost:3003/           (Landing page)
+# - http://localhost:3003/search     (Semantic search)
+# - http://localhost:3003/geography  (Interactive map of 1,342 places)
+# - http://localhost:3003/languages  (Hebrew/Greek original texts)
+# - http://localhost:3003/about      (Data sources & methodology)
 ```
 
 ### Development (UI)
@@ -171,6 +196,35 @@ All optimizations are **opt-in via CLI flags**. Default behavior (no flags) matc
 
 ## Architecture
 
+### Application Structure
+
+```
+Prism Religious Studies (Multi-Page SvelteKit App)
+├── Landing Page (/)
+│   ├── Hero section with branding
+│   ├── Feature cards (Search, Geography, Languages, AI Analysis)
+│   └── Statistics display
+├── Search (/search)
+│   ├── Semantic search across 5 translations
+│   ├── Translation comparison grid (up to 4 side-by-side)
+│   ├── AI insights panel (commentary, cross-refs, translation analysis)
+│   └── Integration links (View on Map, View in Original)
+├── Geography (/geography)
+│   ├── Interactive Leaflet.js map
+│   ├── 1,342 biblical places with clustering
+│   ├── Place detail panel (coordinates, verses, alternate names)
+│   └── Filters (place type, confidence level, search)
+├── Languages (/languages)
+│   ├── Hebrew viewer (WLC 4.20)
+│   ├── Greek viewer (SBLGNT 1.0)
+│   ├── Interlinear view (word alignment + transliteration + gloss)
+│   └── Book/chapter/verse navigation
+└── About (/about)
+    ├── Methodology (semantic search, AI models)
+    ├── Data sources (SWORD, OpenBible.info, Prism)
+    └── Academic attributions
+```
+
 ### Data Flow
 ```
 CSV files (../../data/bible/{version}/*.csv)
@@ -178,11 +232,41 @@ CSV files (../../data/bible/{version}/*.csv)
 Importer CLI (httpx async)
     ↓
 Prism API (http://localhost:8100)
+    ├── Documents: Bible verses (18,069 indexed)
+    ├── Geography: Biblical places (1,342 locations)
+    └── Embeddings: nomic-embed-text (768 dimensions)
     ↓
-PostgreSQL (prism.documents table)
+PostgreSQL (prism.documents table + pgvector)
     ↓
-Bible Study UI ← Ollama (AI commentary)
+Prism RS UI ← Ollama (Qwen 2.5 14B for AI commentary)
 ```
+
+### Component Architecture
+
+**API Integration Layers** (`ui/src/lib/api/`):
+- `geography.ts`: Geography API with 10-min cache (fetchBiblicalPlaces, searchPlacesByName, getPlaceDetails)
+- `sword.ts`: Original texts API with 30-min cache (getHebrewText, getGreekText, getInterlinear)
+- `prism.ts`: Core search API (searchVerses, getContext)
+
+**Shared Components** (`ui/src/lib/components/`):
+- `GeographyMap.svelte`: Leaflet integration with confidence-based markers
+- `PlaceDetail.svelte`: Geography details panel
+- `LanguageViewer.svelte`: Hebrew/Greek text viewer with tabs
+- `InterlinearView.svelte`: Word-by-word alignment grid
+- `SearchBar.svelte`: Unified search with export dropdown
+- `ResultsList.svelte`: Verse results with feature icons
+- `TranslationGrid.svelte`: Side-by-side translation comparison
+- `AIPanel.svelte`: AI-generated insights with provenance
+- `SkeletonLoader.svelte`: Reusable loading states
+- `ErrorBoundary.svelte`: Comprehensive error display
+
+**Routes** (`ui/src/routes/`):
+- `+layout.svelte`: Global nav with Christianity badge
+- `+page.svelte`: Landing page with stats and features
+- `search/+page.svelte`: 3-column search layout (responsive)
+- `geography/+page.svelte`: Map view with filters
+- `languages/+page.svelte`: Original text viewer
+- `about/+page.svelte`: Methodology and credits
 
 ### CSV Structure
 Each Bible version has 66 CSV files (one per book):
@@ -348,14 +432,43 @@ pytest --cov=. tests/                    # With coverage
 
 | Path | Purpose |
 |------|---------|
-| `config/docker-compose.bible.yaml` | Overlay compose file |
-| `ui/src/lib/BibleSearch.svelte` | Main search component |
-| `ui/src/routes/+page.svelte` | Home page with search UI |
-| `ui/docker/Dockerfile` | Multi-stage production build |
+| **Configuration** ||
+| `config/docker-compose.bible.yaml` | Overlay compose file (container: prism-rs) |
+| `ui/package.json` | Dependencies (Leaflet 1.9.4, SvelteKit 2.5) |
+| `ui/tailwind.config.js` | Mediterranean color palette + custom fonts |
+| `ui/src/app.css` | Global styles + Hebrew/Greek CSS |
+| **Routes** ||
+| `ui/src/routes/+layout.svelte` | Global nav + Christianity badge |
+| `ui/src/routes/+page.svelte` | Landing page with features + stats |
+| `ui/src/routes/search/+page.svelte` | 3-column search layout |
+| `ui/src/routes/geography/+page.svelte` | Interactive map page |
+| `ui/src/routes/languages/+page.svelte` | Original texts page |
+| `ui/src/routes/about/+page.svelte` | Methodology + data sources |
+| **API Integration** ||
+| `ui/src/lib/api/geography.ts` | Geography API (places, search, cache) |
+| `ui/src/lib/api/sword.ts` | Original texts API (Hebrew, Greek, interlinear) |
+| `ui/src/lib/api/prism.ts` | Core search API (existing) |
+| **Components** ||
+| `ui/src/lib/components/GeographyMap.svelte` | Leaflet map with 1,342 markers |
+| `ui/src/lib/components/PlaceDetail.svelte` | Place detail panel |
+| `ui/src/lib/components/LanguageViewer.svelte` | Hebrew/Greek viewer |
+| `ui/src/lib/components/InterlinearView.svelte` | Word alignment grid |
+| `ui/src/lib/components/SearchBar.svelte` | Search + export dropdown |
+| `ui/src/lib/components/ResultsList.svelte` | Results with feature icons |
+| `ui/src/lib/components/TranslationGrid.svelte` | Side-by-side translations |
+| `ui/src/lib/components/AIPanel.svelte` | AI insights + provenance |
+| `ui/src/lib/components/SkeletonLoader.svelte` | Loading states |
+| `ui/src/lib/components/ErrorBoundary.svelte` | Error display |
+| **Importer** ||
 | `importer/cli.py` | CLI entry point |
 | `importer/src/bible_importer/core.py` | Import logic |
-| `importer/tests/` | Test suite (117 tests) |
-| `docs/bible-importer-guide.md` | User documentation |
+| `importer/tests/` | Test suite (137 tests) |
+| **Docker** ||
+| `ui/docker/Dockerfile` | Multi-stage production build |
+| **Documentation** ||
+| `README.md` | User-facing project documentation |
+| `CLAUDE.md` | Developer documentation (this file) |
+| `docs/bible-importer-guide.md` | Importer user guide |
 
 ## Troubleshooting
 

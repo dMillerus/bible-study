@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { selectedVerse, compareTranslations, comparisonData } from '$lib/stores/selection';
 	import { getVerseInTranslations } from '$lib/api/prism';
-	import { BookMarked, RefreshCw } from 'lucide-svelte';
+	import { BookMarked, RefreshCw, Copy, Check } from 'lucide-svelte';
 	import type { Translation } from '$lib/types/bible';
 
 	let loading = false;
 	let error: string | null = null;
+	let copied = false;
 
 	$: if ($selectedVerse && $compareTranslations.length > 0) {
 		loadComparisons();
@@ -44,6 +45,54 @@
 		};
 		return labels[trans];
 	}
+
+	async function copyCitation() {
+		if (!$selectedVerse) return;
+
+		const citation = `${$selectedVerse.verse_ref} (${$selectedVerse.translation.toUpperCase()})`;
+
+		try {
+			await navigator.clipboard.writeText(citation);
+			copied = true;
+			setTimeout(() => {
+				copied = false;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy citation:', err);
+		}
+	}
+
+	function exportVerse() {
+		if (!$selectedVerse || Object.keys($comparisonData).length === 0) return;
+
+		const lines = [
+			`Reference: ${$selectedVerse.verse_ref}`,
+			'',
+			'Translations:',
+			''
+		];
+
+		Object.entries($comparisonData).forEach(([trans, text]) => {
+			lines.push(`${trans.toUpperCase()}: ${text}`);
+			lines.push('');
+		});
+
+		lines.push('');
+		lines.push('---');
+		lines.push(`Source: Prism Religious Studies (Christianity Module)`);
+		lines.push(`Generated: ${new Date().toLocaleDateString()}`);
+
+		const content = lines.join('\n');
+		const blob = new Blob([content], { type: 'text/plain' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${$selectedVerse.verse_ref.replace(/\s+/g, '_')}.txt`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}
 </script>
 
 <div class="translation-grid h-full flex flex-col bg-white">
@@ -59,12 +108,40 @@
 	{:else}
 		<!-- Header -->
 		<div class="px-6 py-4 border-b border-gray-200">
-			<h2 class="text-lg font-semibold text-gray-900">
-				{$selectedVerse.verse_ref}
-			</h2>
-			<p class="text-sm text-gray-600 mt-1">
-				Translation Comparison
-			</p>
+			<div class="flex items-start justify-between">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-900">
+						{$selectedVerse.verse_ref}
+					</h2>
+					<p class="text-sm text-gray-600 mt-1">
+						Translation Comparison
+					</p>
+				</div>
+				<!-- Citation and Export buttons -->
+				<div class="flex gap-2">
+					<button
+						on:click={copyCitation}
+						class="flex items-center gap-1 px-3 py-1.5 bg-sand-100 hover:bg-sand-200 text-gray-700 rounded text-xs transition-colors"
+						title="Copy citation to clipboard"
+					>
+						{#if copied}
+							<Check class="h-3 w-3 text-green-600" />
+							<span class="text-green-600">Copied!</span>
+						{:else}
+							<Copy class="h-3 w-3" />
+							<span>Copy Citation</span>
+						{/if}
+					</button>
+					<button
+						on:click={exportVerse}
+						class="flex items-center gap-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded text-xs transition-colors"
+						title="Export verse to text file"
+					>
+						<BookMarked class="h-3 w-3" />
+						<span>Export</span>
+					</button>
+				</div>
+			</div>
 		</div>
 
 		<!-- Grid content -->
@@ -122,13 +199,24 @@
 					<h4 class="text-sm font-semibold text-gray-700 mb-2">
 						About These Translations:
 					</h4>
-					<div class="grid grid-cols-2 gap-3 text-xs text-gray-600">
+					<div class="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-4">
 						{#each $compareTranslations as translation}
 							<div>
 								<span class="font-semibold">{translation.toUpperCase()}:</span>
 								{getTranslationLabel(translation)}
 							</div>
 						{/each}
+					</div>
+
+					<!-- Data Provenance -->
+					<div class="bg-sand-50 rounded-lg p-3 border border-sand-200">
+						<h5 class="text-xs font-semibold text-gray-800 mb-1">Data Provenance</h5>
+						<p class="text-xs text-gray-600">
+							<strong>Source:</strong> SWORD Project Bible modules (Public Domain)<br/>
+							<strong>Search Engine:</strong> Prism (Personal Semantic Data Layer)<br/>
+							<strong>Embedding Model:</strong> nomic-embed-text (768 dimensions)<br/>
+							<strong>Database:</strong> PostgreSQL with pgvector extension
+						</p>
 					</div>
 				</div>
 			{/if}

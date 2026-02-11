@@ -39,11 +39,22 @@
 			{/if}
 		</div>
 
-		<!-- Footer -->
-		<div class="sticky bottom-0 px-4 py-3 bg-gray-100 border-t border-gray-200">
-			<p class="text-xs text-gray-500 text-center">
-				AI insights powered by Qwen 2.5
-			</p>
+		<!-- Footer with data provenance -->
+		<div class="sticky bottom-0 px-4 py-3 bg-sand-50 border-t border-sand-200">
+			<div class="bg-amber-50 rounded-lg p-3 border border-amber-200 mb-2">
+				<h5 class="text-xs font-semibold text-amber-900 mb-1 flex items-center gap-1">
+					<Sparkles class="h-3 w-3" />
+					AI-Generated Content
+				</h5>
+				<p class="text-xs text-amber-800">
+					These insights are for research exploration, not definitive interpretation.
+					Always consult scholarly commentaries for authoritative analysis.
+				</p>
+			</div>
+			<div class="text-xs text-gray-600">
+				<p class="mb-1"><strong>AI Model:</strong> Qwen 2.5 14B (via Ollama)</p>
+				<p><strong>Temperature:</strong> 0.7 (creative insights) • <strong>Cached:</strong> 1 hour TTL</p>
+			</div>
 		</div>
 	{/if}
 </div>
