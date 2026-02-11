@@ -55,12 +55,21 @@ export async function fetchBiblicalPlaces(params: SearchPlacesParams = {}): Prom
 
 	try {
 		// Step 1: Get list of all geography document IDs
-		const listResponse = await fetch(`${PRISM_API_URL}/api/v1/documents?domain=geography/biblical&limit=2000`, {
+		console.log('[Geography] Fetching document list...');
+
+		// Add timeout to prevent hanging
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+		const listResponse = await fetch(`${PRISM_API_URL}/api/v1/documents?domain=geography/biblical&limit=100`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
 			},
+			signal: controller.signal,
 		});
+
+		clearTimeout(timeout);
 
 		if (!listResponse.ok) {
 			throw new Error(`Failed to load geography data (HTTP ${listResponse.status})`);
@@ -68,23 +77,47 @@ export async function fetchBiblicalPlaces(params: SearchPlacesParams = {}): Prom
 
 		const listData = await listResponse.json();
 		const documentIds = (listData.items || []).map((item: any) => item.id);
+		console.log(`[Geography] Found ${documentIds.length} documents. Fetching details...`);
 
 		// Step 2: Fetch full details (with metadata) for all documents in batches
 		const batchSize = 50;
 		const allPlaces: BiblicalPlace[] = [];
+		let processedCount = 0;
 
-		for (let i = 0; i < documentIds.length; i += batchSize) {
-			const batch = documentIds.slice(i, i + batchSize);
+		// Respect API limit of 100 per request - fetch only what was requested
+		// Note: Prism API has max limit=100, so we can't fetch more than that anyway
+		const maxToFetch = Math.min(documentIds.length, limit);
+		const idsToFetch = documentIds.slice(0, maxToFetch);
+		console.log(`[Geography] Will fetch ${idsToFetch.length} documents (limited from ${documentIds.length} total)`);
+
+		for (let i = 0; i < idsToFetch.length; i += batchSize) {
+			const batch = idsToFetch.slice(i, i + batchSize);
+			console.log(`[Geography] Fetching batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(idsToFetch.length / batchSize)} (${batch.length} documents)...`);
+
 			const fetchPromises = batch.map(async (id: string) => {
 				try {
-					const response = await fetch(`${PRISM_API_URL}/api/v1/documents/${id}`);
+					// Add timeout for each individual fetch
+					const controller = new AbortController();
+					const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout per document
+
+					const response = await fetch(`${PRISM_API_URL}/api/v1/documents/${id}`, {
+						signal: controller.signal
+					});
+
+					clearTimeout(timeout);
+
 					if (response.ok) {
 						const doc = await response.json();
 						return doc;
 					}
+					console.warn(`[Geography] Failed to fetch document ${id}: HTTP ${response.status}`);
 					return null;
 				} catch (e) {
-					console.error(`Failed to fetch document ${id}:`, e);
+					if (e instanceof Error && e.name === 'AbortError') {
+						console.warn(`[Geography] Timeout fetching document ${id}`);
+					} else {
+						console.error(`[Geography] Error fetching document ${id}:`, e);
+					}
 					return null;
 				}
 			});
@@ -99,7 +132,12 @@ export async function fetchBiblicalPlaces(params: SearchPlacesParams = {}): Prom
 					allPlaces.push(place);
 				}
 			}
+
+			processedCount += batch.length;
+			console.log(`[Geography] Processed ${processedCount}/${idsToFetch.length} documents (${allPlaces.length} valid places so far)`);
 		}
+
+		console.log(`[Geography] Completed! Loaded ${allPlaces.length} places with valid coordinates.`);
 
 		// Apply client-side filters if specified
 		let filteredPlaces = allPlaces;
@@ -126,6 +164,9 @@ export async function fetchBiblicalPlaces(params: SearchPlacesParams = {}): Prom
 	} catch (error) {
 		console.error('Error fetching biblical places:', error);
 		if (error instanceof Error) {
+			if (error.name === 'AbortError') {
+				throw new Error('Request timed out. The server may be slow or unavailable.');
+			}
 			throw error;
 		}
 		throw new Error('Network error. Please check your connection and try again.');

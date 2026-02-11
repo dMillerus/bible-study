@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { Map, Search, Filter, Loader } from 'lucide-svelte';
+	import { Map, Search, Filter, Loader, RefreshCw } from 'lucide-svelte';
 	import GeographyMap from '$lib/components/GeographyMap.svelte';
 	import PlaceDetail from '$lib/components/PlaceDetail.svelte';
 	import {
@@ -29,8 +29,8 @@
 			// Fetch place types
 			placeTypes = await getPlaceTypes();
 
-			// Fetch all places
-			const response = await fetchBiblicalPlaces({ limit: 2000 });
+			// Fetch initial batch of places (API max limit is 100)
+			const response = await fetchBiblicalPlaces({ limit: 100 });
 			places = response.places;
 			filteredPlaces = places;
 
